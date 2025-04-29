@@ -44,7 +44,7 @@ local connection = nil
 
 local function changeWalkSpeed(check)
     if check then
-        local workPlayer = workspace.Players:waitForChild("Character)
+        local workPlayer = workspace.Players:waitForChild("Character")
         connection = workPlayer.Humanoid:GetPropertyChangedSignal("WalkSpeed"):Connect(function() workPlayer.Humanoid.WalkSpeed = 17 end)
         print("WalkSpeed Changed!") 
     else
