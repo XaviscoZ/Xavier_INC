@@ -47,7 +47,6 @@ function detectEnemy(hitbox, hrp)
             			end
 
 						if LocalPlayer:DistanceFromCharacter(Origin.Value:FindFirstChild("HumanoidRootPart").CFrame.Position) < 13 then
-							print(toolEquip)
 							if zombie.WalkSpeed > 16 then
 								game:GetService("ReplicatedStorage").Remotes.Gib:FireServer(hit, "Head", hit.Head.CFrame.Position, zombieHead.Normal, true)
 								game:GetService("Workspace").Players[LocalPlayer.Name][toolEquip.Name].RemoteEvent:FireServer("Swing", "Thrust")
