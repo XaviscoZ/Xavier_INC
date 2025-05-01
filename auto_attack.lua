@@ -11,10 +11,7 @@ params.FilterDescendantsInstances = {LocalPlayer.Character}
 isDead = false
 nowMelee = ""
 
-StarterGui:SetCore("SendNotification", {
-    Title = "Kill Aura Loaded!",
-    Text = "If you can see this, the script is working"
-})
+print("[DEBUG] IF YOU CAN READ THIS, THE SCRIPT IS LOADED AND WORKING! [DEBUG]")
 
 function checkEquipTool()
 	local childrens = LocalPlayer.Character:GetChildren()
