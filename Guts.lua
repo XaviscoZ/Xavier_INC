@@ -1,5 +1,7 @@
 -- Main Functions
 
+local LocalPlayer = game:GetService("Players").LocalPlayer
+
 -- ESP
 espRToggled = false
 espBToggled = false
@@ -38,8 +40,101 @@ workspace.Camera.ChildAdded:Connect(
     end
 )
 
+
+toolEquip = true
+
+-- Kill Aura
+observerOnline = false
+killAuraToggled = false
+isDead = false
+
+local raycastParams = RaycastParams.new()
+raycastParams.FilterDescendantsInstances = {LocalPlayer.Character}
+raycastParams.FilterType = Enum.RaycastFilterType.Exclude
+
+local params = OverlapParams.new()
+params.FilterDescendantsInstances = {LocalPlayer.Character}
+
+function detectEnemy(hitbox, hrp)
+    print("Detect enemy Start!")
+    while true do
+        if killAuraToggled == false then
+            print("detectEnemy killed!")
+            isDead = false
+            observerOnline = false
+            return nil
+        end
+
+        local parts = workspace:GetPartsInPart(hitbox, params)
+        for i, part in pairs(parts) do
+            if part.parent and part.parent.Name == "m_Zombie" then
+                local Origin = part.parent:WaitForChild("Orig")
+                if Origin.Value ~= nil then
+                    local zombie = Origin.Value:WaitForChild("Zombie")
+                    local childrens = LocalPlayer.Character:GetChildren()
+                    if toolEquip then
+                        local hit = Origin.Value
+                        local zombieHead = workspace:Raycast(hrp.CFrame.Position, hit.Head.CFrame.Position - hrp.CFrame.Position)
+                        local calc = (zombieHead.Position - hrp.CFrame.Position)
+
+                        if calc:Dot(calc) > 1 then
+                            calc = calc.Unit
+                        end
+
+                        if LocalPlayer:DistanceFromCharacter(Origin.Value:FindFirstChild("HumanoidRootPart").CFrame.Position) < 13 then
+                            if zombie.WalkSpeed > 16 then
+                                game:GetService("ReplicatedStorage").Remotes.Gib:FireServer(hit, "Head", hit.Head.CFrame.Position, zombieHead.Normal, true)
+                                game:GetService("Workspace").Players[LocalPlayer.Name]["Heavy Sabre"].RemoteEvent:FireServer("Swing", "Thrust")
+                                game:GetService("Workspace").Players[LocalPlayer.Name]["Heavy Sabre"].RemoteEvent:FireServer("HitZombie", hit, hit.Head.CFrame.Position, true, calc * 25, "Head", zombieHead.Normal)
+                            else
+                                if part.Parent:FindFirstChild("Barrel") == nil then
+                                    game:GetService("ReplicatedStorage").Remotes.Gib:FireServer(hit, "Head", hit.Head.CFrame.Position, zombieHead.Normal, true)
+                                    game:GetService("Workspace").Players[LocalPlayer.Name]["Heavy Sabre"].RemoteEvent:FireServer("Swing", "Thrust")
+                                    game:GetService("Workspace").Players[LocalPlayer.Name]["Heavy Sabre"].RemoteEvent:FireServer("HitZombie", hit, hit.Head.CFrame.Position, true, calc * 25, "Head", zombieHead.Normal)
+                                end
+                            end
+                        end
+                    end
+                end 
+            end
+        end
+    end
+end
+
+function createHitBox()
+    if LocalPlayer.Character:WaitForChild("HumanoidRootPart"):FindFirstChild("Hitbox") ~= nil then
+        if observerOnline == false then
+            observerOnline = true
+            detectEnemy(LocalPlayer.Character:WaitForChild("HumanoidRootPart"):FindFirstChild("Hitbox"), LocalPlayer.Character:WaitForChild("HumanoidRootPart"))
+        end
+
+        return true
+    else
+        local torso = LocalPlayer.Character:WaitForChild("HumanoidRootPart")
+        local hitbox = Instance.new("Part", torso)
+        hitbox.Name = "Hitbox"
+        hitbox.Anchored = false
+        hitbox.Massless = true
+        hitbox.CanCollide = false
+        hitbox.CanTouch = false
+        hitbox.Transparency  = 1
+        hitbox.Size = Vector3.new(13, 7, 12.5)
+        hitbox.CFrame = torso.CFrame * CFrame.new(0, 0, -7.8)
+
+        local weld = Instance.new("WeldConstraint", torso)
+        weld.Part0 = hitbox
+        weld.Part1 = LocalPlayer.Character.HumanoidRootPart
+
+        if observerOnline == false then
+            observerOnline = true
+            detectEnemy(hitbox, LocalPlayer.Character:WaitForChild("HumanoidRootPart"))
+        end
+
+        return true
+    end
+end
+
 -- WalkSpeed
-local LocalPlayer = game:GetService("Players").LocalPlayer
 local connection = nil
 
 local function changeWalkSpeed(check)
@@ -55,25 +150,15 @@ local function changeWalkSpeed(check)
     end
 end
 
--- GodMode
 walkSpeedToggled = false
-godModeToggled = false
 workspace.Players.ChildAdded:Connect(
    function(child)
       if walkSpeedToggled then
         changeWalkSpeed(walkSpeedToggled)
       end
-      if godModeToggled then
-        if child.Name == game:GetService("Players").LocalPlayer.Name then
-            if child.HumanoidRootPart:FindFirstChild("GrabP") ~= nil then
-               game.Players.LocalPlayer.Character.HumanoidRootPart.GrabP:Destroy()
-            end
-         end
-      else
-         return nil
-      end
    end
 )
+
 
 -- HeadLock
 local MeleeBase = require(game:GetService("ReplicatedStorage").Modules.Weapons:waitForChild("MeleeBase"))
@@ -291,18 +376,6 @@ local walkSpeed =
         Callback = function(Value)
             changeWalkSpeed(Value)
             walkSpeedToggled = Value
-        end
-    }
-)
-
-local god_toggle =
-    Tab:CreateToggle(
-    {
-        Name = "God Mode",
-        CurrentValue = false,
-        Flag = "GodMode",
-        Callback = function(Value)
-            godModeToggled = Value
         end
     }
 )
