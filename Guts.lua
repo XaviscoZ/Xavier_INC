@@ -6,6 +6,8 @@ local LocalPlayer = game:GetService("Players").LocalPlayer
 espRToggled = false
 espBToggled = false
 espIToggled = false
+espCuToogled = false
+
 workspace.Camera.ChildAdded:Connect(
     function(child)
         if child.Name == "m_Zombie" then
@@ -35,6 +37,14 @@ workspace.Camera.ChildAdded:Connect(
                         Highlight.FillColor = Color3.fromRGB(255,255,51)
                     end
                 end
+                if espCuToogled then
+                    if child:FindFirstChild("Sword") ~= nil then
+                        local Highlight = Instance.new("Highlight")
+                        Highlight.Parent = child
+                        Highlight.Adornee = child
+                        Highlight.FillColor = Color3.fromRGB(65,105,225)  
+                    end
+                end       
             end
         end
     end
@@ -137,30 +147,119 @@ end
 -- WalkSpeed
 local connection = nil
 
-local function changeWalkSpeed(check)
-    if check then
-        local workPlayer = LocalPlayer.Character
-        connection = workPlayer.Humanoid:GetPropertyChangedSignal("WalkSpeed"):Connect(function() workPlayer.Humanoid.WalkSpeed = 17 end)
-        print("WalkSpeed Changed!") 
-    else
-        if connection ~= nil then
-            print("Disconnect!")
-            connection:Disconnect()
-        end
-    end
+local function changeWalkSpeed(newValue)
+    local workPlayer = LocalPlayer.Character
+    workPlayer.Humanoid.WalkSpeed = newValue
+    connection = workPlayer.Humanoid:GetPropertyChangedSignal("WalkSpeed"):Connect(function() workPlayer.Humanoid.WalkSpeed = newValue end)
 end
 
 walkSpeedToggled = false
+walkSpeedValue = 16
 workspace.Players.ChildAdded:Connect(
    function(child)
-      if walkSpeedToggled then
-        changeWalkSpeed(walkSpeedToggled)
-      end
+    changeWalkSpeed(walkSpeedValue)
    end
 )
 
 
+
+
 -- HeadLock
+
+-- Bayonet Support
+
+local v_u_1 = {}
+v_u_1.__index = v_u_1
+local v_u_2 = game:GetService("UserInputService")
+local v_u_3 = workspace.CurrentCamera
+game:GetService("RunService")
+local v_u_4 = require(game.ReplicatedStorage:WaitForChild("Modules"):WaitForChild("RbxUtil"):WaitForChild("Maid"))
+local v_u_5 = require(game.ReplicatedStorage:WaitForChild("Modules"):WaitForChild("World"):WaitForChild("SoundSystem"))
+local v_u_6 = game.ReplicatedStorage:WaitForChild("GameStates"):WaitForChild("Gameplay"):WaitForChild("FriendlyFire")
+local v7 = game.Players.LocalPlayer:WaitForChild("Options")
+local v_u_8 = v7:WaitForChild("HoldToAim")
+local v_u_9 = v7:WaitForChild("FPArmTransparency")
+local v_u_10 = v7:WaitForChild("ADSSens")
+local v_u_11 = v7:WaitForChild("Gore")
+local v_u_12 = v7:WaitForChild("WeaponStains")
+local v_u_13 = v7:WaitForChild("UnlockDirAtUnEquip")
+local v_u_14 = game.ReplicatedStorage:WaitForChild("RecoilEvent")
+local v_u_15 = {
+    ["Fire"] = "rbxassetid://14228569908",
+    ["Reload"] = "rbxassetid://14228570786",
+    ["BayonetAttack"] = "rbxassetid://14228880526",
+    ["BayonetToggle"] = "rbxassetid://14228572871",
+    ["Buttstock"] = "rbxassetid://17219734067",
+    ["CancelAim"] = "rbxassetid://14229391966",
+    ["ADS_On"] = "rbxassetid://13137621651",
+    ["ADS_Off"] = "rbxassetid://9952047700"
+}
+v_u_1.Icons = v_u_15
+local v_u_16 = UDim2.fromScale(1.55, 1.55)
+local v_u_17 = UDim2.new(0.5, 0, 0.5, 0)
+local v_u_18 = game.ReplicatedStorage:WaitForChild("Modules"):WaitForChild("RbxUtil")
+
+local FlintLock = require(game:GetService("ReplicatedStorage").Modules.Weapons:waitForChild("Flintlock"))
+local originFunction_ = FlintLock.BayonetHitCheck
+
+function v_u_1.BayonetHitCheck(p115, p116, p117, p118, p119)
+    local v120 = workspace:Raycast(p116, p117, p118)
+    if v120 then
+        if v120.Instance.Parent.Name == "m_Zombie" then
+            local v121 = p118.FilterDescendantsInstances
+            local v122 = v120.Instance
+            table.insert(v121, v122)
+            p118.FilterDescendantsInstances = v121
+            local v123 = v120.Instance.Parent:FindFirstChild("Orig")
+            if v123 then
+                local Head = ""
+                for i, part in pairs(v120.Instance.Parent:GetChildren()) do
+                    if part.Name == "Head" and part.ClassName == "Part" or part.ClassName == "MeshPart" then
+                        Head = part
+                    end
+                end
+                print(Head)
+                p115.remoteEvent:FireServer("Bayonet_HitZombie", v123.Value, Head.CFrame.Position, true, "Head")
+                local v_u_124 = v123.Value
+                local v_u_125 = tick()
+                v_u_124:SetAttribute("WepHitID", tick())
+                v_u_124:SetAttribute("WepHitDirection", p117 * 10)
+                v_u_124:SetAttribute("WepHitPos", v120.Position)
+                task.delay(0.2, function()
+                    if v_u_124:GetAttribute("WepHitID") == v_u_125 then
+                        v_u_124:SetAttribute("WepHitDirection", nil)
+                        v_u_124:SetAttribute("WepHitPos", nil)
+                        v_u_124:SetAttribute("WepHitID", nil)
+                    end
+                end)
+            end
+            return 1
+        end
+        local v126 = v120.Instance.Parent:FindFirstChild("DoorHit") or v120.Instance:FindFirstChild("BreakGlass")
+        if v126 and not table.find(p119, v126) then
+            table.insert(p119, v126)
+            p115.remoteEvent:FireServer("Bayonet_HitCon", v120.Instance, v120.Position, v120.Normal, v120.Material)
+            return 2
+        end
+        local v127 = v120.Instance.Parent:FindFirstChild("Humanoid") or v120.Instance.Parent.Parent:FindFirstChild("Humanoid")
+        if v127 and not table.find(p119, v127) then
+            table.insert(p119, v127)
+            p115.remoteEvent:FireServer("Bayonet_HitPlayer", v127, v120.Position)
+            return 2
+        end
+    end
+    return 0
+end
+
+function changeBayonet(value)
+   if value then
+      print("Function Changed! - Bayonet")
+      FlintLock.BayonetHitCheck = v_u_1.BayonetHitCheck
+   else
+      FlintLock.BayonetHitCheck = originFunction_
+   end
+end
+
 local MeleeBase = require(game:GetService("ReplicatedStorage").Modules.Weapons:waitForChild("MeleeBase"))
 local originFunction = MeleeBase.MeleeHitCheck
 
@@ -214,13 +313,20 @@ function u1.MeleeHitCheck(p100, p101, p102, p103, p104, p105)
                     if p105 then
                         p100.remoteEvent:FireServer("ThrustCharge", v109.Value, v106.Position, v106.Normal)
                     else
+
+                        local Head = ""
+                        for i, part in pairs(v106.Instance.Parent:GetChildren()) do
+                            if part.Name == "Head" and part.ClassName == "Part" or part.ClassName == "MeshPart" then
+                                Head = part
+                            end
+                        end
                         local u112 = v109.Value
-                        local v113 = v106.Instance.Parent.Head.CFrame.Position - p101
+                        local v113 = Head.CFrame.Position - p101
                         if v113:Dot(v113) > 1 then
                             v113 = v113.Unit
                         end
                         local v114 = v113 * 25
-                        p100.remoteEvent:FireServer("HitZombie", u112, v106.Instance.Parent.Head.CFrame.Position, true, v114, "Head", v106.Normal)
+                        p100.remoteEvent:FireServer("HitZombie", u112, Head.CFrame.Position, true, v114, "Head", v106.Normal)
                         if not u112:GetAttribute("WepHitDirection") then
                             local u115 = tick()
                             u112:SetAttribute("WepHitID", tick())
@@ -324,9 +430,6 @@ function changeMelee(value)
    end
 end
 
--- GodMode
-
-
 local Rayfield = loadstring(game:HttpGet("https://sirius.menu/rayfield"))()
 local Window =
     Rayfield:CreateWindow(
@@ -352,7 +455,7 @@ local Window =
         KeySettings = {
             Title = "G&B Hub - Xavier I.N.C",
             Subtitle = "Key System",
-            Note = "Enter in your Discord! :D\n(discord.gg/SDEjCatjBv)",
+            Note = "Enter in your Discord! :D\n(discord.gg/v8hYqpn2)",
             FileName = "Key",
             SaveKey = true,
             GrabKeyFromSite = false,
@@ -367,18 +470,19 @@ local Section = Tab:CreateSection("Main Functions")
 local esp_Tab = Window:CreateTab("ESP", "target")
 local esp_Section = esp_Tab:CreateSection("ESP Functions")
 
-local walkSpeed =
-    Tab:CreateToggle(
-    {
-        Name = "Walkspeed Fixed",
-        CurrentValue = false,
-        Flag = "walking",
-        Callback = function(Value)
-            changeWalkSpeed(Value)
-            walkSpeedToggled = Value
-        end
-    }
-)
+local Input = Tab:CreateInput({
+   Name = "WalkSpeed",
+   CurrentValue = "16",
+   PlaceholderText = "WalkSpeed",
+   RemoveTextAfterFocusLost = false,
+   Flag = "Input1",
+   Callback = function(Value)
+    Value = tonumber(Value)
+    walkSpeedValue = Value
+    changeWalkSpeed(Value)
+   end,
+})
+
 
 local headToggle =
     Tab:CreateToggle(
@@ -387,7 +491,8 @@ local headToggle =
         CurrentValue = false,
         Flag = "HeadLock", 
         Callback = function(Value)
-         changeMelee(Value)
+            changeBayonet(Value)
+            changeMelee(Value)
         end
     }
 )
@@ -424,6 +529,18 @@ local esp_Igniter =
         Flag = "ESP_3",
         Callback = function(Value)
             espIToggled = Value
+        end
+    }
+)
+
+local esp_Curss =
+    esp_Tab:CreateToggle(
+    {
+        Name = "ESP Cuirassier",
+        CurrentValue = false,
+        Flag = "ESP_4",
+        Callback = function(Value)
+            espCuToogled = Value
         end
     }
 )  
