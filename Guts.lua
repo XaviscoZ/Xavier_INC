@@ -589,7 +589,7 @@ local Section = Tab:CreateSection("Main Functions")
 local esp_Tab = Window:CreateTab("ESP", "target")
 local esp_Section = esp_Tab:CreateSection("ESP Functions")
 
-local player_Tab = Window:CreateTab("Player", "album")
+local player_Tab = Window:CreateTab("Player", "person-standing")
 local player_Section = player_Tab:CreateSection("Aux. Player Functions")
 
 local player_esp =
