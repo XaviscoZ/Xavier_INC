@@ -51,6 +51,72 @@ workspace.Camera.ChildAdded:Connect(
 )
 
 
+-- ESP Players
+
+espLifeToggled = false
+
+function checkPlayersLife()
+    if espLifeToggled == false then
+        print("False!")
+        local Players = workspace.Players:GetChildren()
+        for i, player in pairs(Players) do
+            if player:FindFirstChild("Highlight") ~= nil then
+                player:FindFirstChild("Highlight"):Destroy()
+            end
+        end
+    end
+
+    while espLifeToggled do
+        local Players = workspace.Players:GetChildren()
+        for i, player in pairs(Players) do
+            if player:waitForChild("Humanoid").Health < 60 and player.Name ~= LocalPlayer.Name and LocalPlayer.Backpack:FindFirstChild("Medical Supplies") or LocalPlayer.Character:FindFirstChild("Medical Supplies") and LocalPlayer.Character["Medical Supplies"]:IsA("Tool") then
+                if player:FindFirstChild("Highlight") == nil then
+                    local Highlight = Instance.new("Highlight")
+                    Highlight.Parent = player
+                    Highlight.Adornee = player
+                    Highlight.FillColor = Color3.fromRGB(255, 169, 108)
+                    Highlight.FillTransparency = 0.8
+                    Highlight.OutlineColor = Color3.fromRGB(255, 206, 108)
+                    Highlight.OutlineTransparency = 0.2
+                end
+            else
+                if player:FindFirstChild("Highlight") ~= nil then
+                    player:FindFirstChild("Highlight"):Destroy()
+                end
+            end
+
+            if LocalPlayer.Backpack:FindFirstChild("Mercy") or LocalPlayer.Character:FindFirstChild("Mercy") and LocalPlayer.Character["Mercy"]:IsA("Tool")then
+                if player:waitForChild("UserStates").Infected.Value > 10 and player:FindFirstChild("Highlight") == nil then
+                    if player:waitForChild("UserStates").Infected.Value > 89 then
+                        if player:FindFirstChild("Highlight") ~= nil then
+                            local Highlight = player:FindFirstChild("Highlight")
+                            Highlight.FillColor = Color3.fromRGB(178,34,34)
+                        else
+                            local Highlight = Instance.new("Highlight")
+                            Highlight.Parent = player
+                            Highlight.Adornee = player
+                            Highlight.FillColor = Color3.fromRGB(178,34,34)
+                        end
+                    else
+                        local Highlight = Instance.new("Highlight")
+                        Highlight.Parent = player
+                        Highlight.Adornee = player
+                        Highlight.FillColor = Color3.fromRGB(255, 169, 108)
+                        Highlight.FillTransparency = 0.8
+                        Highlight.OutlineColor = Color3.fromRGB(255, 206, 108)
+                        Highlight.OutlineTransparency = 0.2
+                    end
+                else 
+                    if player:FindFirstChild("Highlight") ~= nil and player:waitForChild("UserStates").Infected.Value == 0 then
+                        player:FindFirstChild("Highlight"):Destroy()
+                    end
+                end
+            end
+        end
+        task.wait(2.0)
+    end
+end
+
 toolEquip = true
 
 -- Kill Aura
@@ -144,26 +210,70 @@ function createHitBox()
     end
 end
 
+-- Saint Lights
+function onLights()
+    local ligthPost = game:GetService("Workspace"):waitForChild("Saint Petersburg").Modes.Holdout:waitForChild("LampPosts"):GetChildren()
+
+    for i, part in pairs(ligthPost) do
+        if part:FindFirstChild("Metal") ~= nil then
+            local Metal = part:FindFirstChild("Metal")
+            Metal.Light.PointLight.Enabled = true
+            Metal.Light.Visible = true
+        end
+    end
+end
+
 -- WalkSpeed
 local connection = nil
 
-local function changeWalkSpeed(newValue)
+local function changeWalkSpeed(newValue, walkSpeedToggled)
     local workPlayer = LocalPlayer.Character
     workPlayer.Humanoid.WalkSpeed = newValue
-    connection = workPlayer.Humanoid:GetPropertyChangedSignal("WalkSpeed"):Connect(function() workPlayer.Humanoid.WalkSpeed = newValue end)
+    if walkSpeedToggled then
+        print("Connected!")
+        connection = workPlayer.Humanoid:GetPropertyChangedSignal("WalkSpeed"):Connect(function() workPlayer.Humanoid.WalkSpeed = newValue end)
+    else
+        if connection ~= nil then
+            print("Disconnected!")
+            connection:Disconnect()
+        end
+    end
 end
 
 walkSpeedToggled = false
 walkSpeedValue = 16
 workspace.Players.ChildAdded:Connect(
    function(child)
-    changeWalkSpeed(walkSpeedValue)
+    changeWalkSpeed(walkSpeedValue, walkSpeedToggled)
    end
 )
 
 
+-- Music
+local namecall
+autoplay = false
+
+namecall = hookmetamethod(game, "__namecall", function(self, ...)
+    local args = {...}
+    local method = getnamecallmethod():lower()
+
+    if not checkcaller() and self.Name == "RemoteEvent" and method == "fireserver" then
+        if autoplay then
+            if args[1] ~= nil then
+                if args[1] == "UpdateAccuracy" then
+                    args[2] = 100
+                    print("[DEBUG] AutoPlay Working!")
+                    return namecall(self, unpack(args))
+                end
+            end
+        return namecall(self, unpack(args))
+        end
+    end
+    return namecall(self, ...)
+end)
 
 
+-- 255, 169, 108 - 255, 206, 108 ( Outline )
 -- HeadLock
 
 -- Bayonet Support
@@ -464,11 +574,62 @@ local Window =
     }
 )
 
+Rayfield:Notify({
+   Title = "Discord",
+   Content = "The discord invitation link has been copied to your clipboard automatically :)",
+   Duration = 6.5,
+   Image = 4483362458,
+})
+
+setclipboard(tostring("https://discord.gg/85tHp3jp"))
+
 local Tab = Window:CreateTab("Main", "album")
 local Section = Tab:CreateSection("Main Functions")
 
 local esp_Tab = Window:CreateTab("ESP", "target")
 local esp_Section = esp_Tab:CreateSection("ESP Functions")
+
+local player_Tab = Window:CreateTab("Player", "album")
+local player_Section = player_Tab:CreateSection("Aux. Player Functions")
+
+local player_esp =
+    player_Tab:CreateToggle(
+    {
+        Name = "Medic Player ESP",
+        CurrentValue = false,
+        Flag = "player_esp", 
+        Callback = function(Value)
+            espLifeToggled = Value
+            checkPlayersLife()
+        end
+    }
+)
+
+local priest_esp =
+    player_Tab:CreateToggle(
+    {
+        Name = "Father Infection ESP",
+        CurrentValue = false,
+        Flag = "father_infection", 
+        Callback = function(Value)
+            espLifeToggled = Value
+            checkPlayersLife()
+        end
+    }
+)
+
+local walkSpeed =
+    Tab:CreateToggle(
+    {
+        Name = "WalkSpeed Freeze",
+        CurrentValue = false,
+        Flag = "WalkSpeed", 
+        Callback = function(Value)
+            walkSpeedToggled = Value
+            changeWalkSpeed(walkSpeedValue, walkSpeedToggled)
+        end
+    }
+)
 
 local Input = Tab:CreateInput({
    Name = "WalkSpeed",
@@ -479,7 +640,7 @@ local Input = Tab:CreateInput({
    Callback = function(Value)
     Value = tonumber(Value)
     walkSpeedValue = Value
-    changeWalkSpeed(Value)
+    changeWalkSpeed(Value, walkSpeedToggled)
    end,
 })
 
@@ -493,6 +654,30 @@ local headToggle =
         Callback = function(Value)
             changeBayonet(Value)
             changeMelee(Value)
+        end
+    }
+)
+
+local Lights =
+    Tab:CreateButton(
+    {
+        Name = "Lights On (Saint Petersburg)",
+        CurrentValue = false,
+        Flag = "Saint", 
+        Callback = function(Value)
+            onLights()
+        end
+    }
+)
+
+local autoPlay =
+    Tab:CreateToggle(
+    {
+        Name = "Auto Play",
+        CurrentValue = false,
+        Flag = "auto_play", 
+        Callback = function(Value)
+            autoplay = Value
         end
     }
 )
